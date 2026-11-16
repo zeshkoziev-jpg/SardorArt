@@ -319,5 +319,7 @@ app.use((req, res) => {
 (async () => {
   await fsp.mkdir(UPLOADS_DIR, { recursive: true });
   await loadData();
-  app.listen`(PORT, () => console.log(SARDOR ART: http://localhost:${PORT}))`;
+  app.listen(PORT, () => {
+    console.log(`SARDOR ART: http://localhost:${PORT}`);
+  });
 })();
