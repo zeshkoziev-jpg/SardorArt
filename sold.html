@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sotilganlar — SARDOR ART</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body data-page="sold">
+  <div id="site-header"></div>
+  <main class="container">
+    <h1 data-i18n="sold_title">Sotilganlar</h1>
+    <div id="sold-area"></div>
+  </main>
+  <div id="site-footer"></div>
+
+  <script>
+    window.initSold = async function () {
+      const area = document.getElementById('sold-area');
+      const user = getAuth();
+      if (!user || user.role !== 'seller') return area.innerHTML = <p class="muted">Ruxsat yo'q.</p>;
+      try {
+        const j = await api('/api/seller/sold');
+        if (!j.sold.length) return area.innerHTML = <p class="muted">Hozircha sotuvlar yo'q.</p>;
+        
+        area.innerHTML = j.sold.map(o => 
+          <div style="background:var(--card); padding:14px; border-radius:12px; margin-bottom:12px; border:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap;">
+              <div><b>${esc(o.productName)}</b> x ${esc(o.qty)}</div>
+              <div class="muted">Mijoz: <b>${esc(o.buyerName)}</b> | <a href="tel:${esc(o.buyerPhone)}">${esc(o.buyerPhone)}</a></div>
+            </div>
+            <div class="muted mt-2">${esc(o.address)}</div>
+            <a class="btn mt-2" href="https://www.google.com/maps?q=${o.lat},${o.lng}" target="_blank">Xaritada ko'rish</a>
+          </div>
+        ).join('');
+      } catch (e) { area.innerHTML = <p class="error-text">Xatolik</p>; }
+    };
+  </script>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Buyurtma — SARDOR ART</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body data-page="checkout">
+  <div id="site-header"></div>
+  <main class="container">
+    <h1 data-i18n="checkout_title">Buyurtmani rasmiylashtirish</h1>
+    <div id="checkout-area"></div>
+  </main>
+  <div id="site-footer"></div>
+
+  <script>
+    window.initCheckout = function () {
+      const area = document.getElementById('checkout-area');
+      const user = getAuth();
+      if (!user) return area.innerHTML = <p class="muted">Tizimga kiring. <a href="/login">Kirish</a></p>;
+      const cart = getCart();
+      if (!cart.length) return area.innerHTML = <p class="muted">Savat bo'sh.</p>;
+
+      let lat = null, lng = null;
+      area.innerHTML = `
+        <div class="form">
+          <label>Ism</label><input id="buyer-name" class="input" maxlength="80">
+          <label>Telefon</label><input class="input" value="${esc(user.phone)}" readonly>
+          <label>Manzil</label><textarea id="buyer-address" class="input" maxlength="300"></textarea>
+          <div class="row"><button id="loc-btn" class="btn">Joylashuvni aniqlash</button><span id="loc-status" class="muted"></span></div>
+          <div id="map-slot"></div>
+          <div class="price mt-2">Jami: ${esc(fmtMoney(cart.reduce((s,x)=>s+x.price*x.qty, 0)))}</div>
+          <button id="submit-btn" class="btn primary">Tasdiqlash</button>
+          <div id="err" class="error-text"></div>
+        </div>`
+      ;
+      document.getElementById('loc-btn').onclick = () => {
+        navigator.geolocation.getCurrentPosition(pos => {
+          lat = pos.coords.latitude; lng = pos.coords.longitude;
+          document.getElementById('loc-status').textContent = 'Aniqlandi';
+          document.getElementById('map-slot').innerHTML = <iframe class="map-embed" src="https://www.google.com/maps?q=${lat},${lng}&z=16&output=embed"></iframe>;
+        }, () => document.getElementById('loc-status').textContent = 'Xatolik');
+      };
+      document.getElementById('submit-btn').onclick = async () => {
+        const name = document.getElementById('buyer-name').value.trim();
+        const addr = document.getElementById('buyer-address').value.trim();
+        if (!name , !addr , !lat) return document.getElementById('err').textContent = 'Barcha maydonlarni to\'ldiring va joylashuvni aniqlang!';
+        try {
+          await api('/api/orders', { method: 'POST', body: {
+            items: cart.map(x => ({ productId: x.id, qty: x.qty })), buyerName: name, lat, lng, address: addr
+          }});
+          setCart([]); toast('Buyurtma qabul qilindi!', 'ok'); setTimeout(() => window.location.href = '/', 900);
+        } catch (e) { document.getElementById('err').textContent = 'Xatolik yuz berdi'; }
+      };
+    };
+  </script>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Savdogar — SARDOR ART</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body data-page="seller">
+  <div id="site-header"></div>
+  <main class="container">
+    <h1 data-i18n="seller_title">Savdogar paneli</h1>
+    <div id="seller-area"></div>
+  </main>
+  <div id="site-footer"></div>
+
+  <script>
+    window.initSeller = function () {
+      const area = document.getElementById('seller-area');
+      const user = getAuth();
+      if (!user || user.role !== 'seller') {
+        return area.innerHTML = `<p class="muted">Ruxsat yo'q. <a href="/profile">Profil</a></p>`;
+      }
+
+      area.innerHTML = `
+        <div class="sold-card" style="background:var(--card); padding:20px; border-radius:12px; border:1px solid var(--border);">
+          <h2 data-i18n="create">Yaratish</h2>
+          <div class="form">
+            <label>Asar nomi</label><input id="p-name" class="input" maxlength="80">
+            <label>Janr</label>
+            <select id="p-genre" class="input">
+              <option value="Manzara">Manzara</option><option value="Portret">Portret</option>
+              <option value="Abstrakt">Abstrakt</option><option value="Natyurmort">Natyurmort</option>
+              <option value="Realizm">Realizm</option><option value="Zamonaviy">Zamonaviy</option>
+              <option value="Boshqa">Boshqa</option>
+            </select>
+            <label>Narx (so'm)</label><input id="p-price" class="input" type="number" min="1">
+            <label>To'lov turi</label>
+            <select id="p-payment" class="input">
+              <option value="100% oldindan">100% oldindan</option>
+              <option value="50% oldindan, 50% keyin">50% oldindan, 50% keyin</option>
+              <option value="100% keyin">100% keyin</option>
+            </select>
+            <label>Rasm</label><input id="p-file" type="file" accept="image/jpeg,image/png,image/webp">
+            <img id="p-preview" class="hidden" style="max-width:220px; border-radius:10px; margin-top:8px" alt="">
+            <label class="row" style="gap:8px"><input id="p-public" type="checkbox" checked><span>Ommaga taqdim etish</span></label>
+            <button id="p-create" class="btn primary">Yaratish</button>
+            <div id="p-msg" class="error-text"></div>
+          </div>
+        </div>
+        <div class="mt-2"><h2>Mening asarlarim</h2><div id="works"></div></div>`;
+
+      let pendingFile = null;
+      const nameEl = document.getElementById('p-name'), priceEl = document.getElementById('p-price');
+      const genreEl = document.getElementById('p-genre'), paymentEl = document.getElementById('p-payment');
+      const fileEl = document.getElementById('p-file'), preview = document.getElementById('p-preview');
+      const pubEl = document.getElementById('p-public'), createBtn = document.getElementById('p-create');
+      const msgEl = document.getElementById('p-msg'), worksEl = document.getElementById('works');
+
+      fileEl.addEventListener('change', async () => {
+        msgEl.textContent = ''; 
+        const f = fileEl.files[0]; 
+        if (!f) return;
+        if (f.size > 6 * 1024 * 1024) return msgEl.textContent = 'Rasm 6MB dan oshmasin';
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const scale = Math.min(1, 900 / Math.max(img.width, img.height));
+            canvas.width = img.width * scale; 
+            canvas.height = img.height * scale;
+            const ctx = canvas.getContext('2d'); 
+            ctx.fillStyle = '#fff'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            pendingFile = { base64: dataUrl.split(',')[1], type: 'image/jpeg' };
+            preview.src = dataUrl; 
+            preview.classList.remove('hidden');
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(f);
+      });
+
+      async function renderWorks() {
+        try {
+          const j = await api('/api/seller/products');
+          if (!j.products.length) return worksEl.innerHTML = `<p class="muted">Asarlar yo'q.</p>`;
+          
+          worksEl.innerHTML = `<div class="grid">${j.products.map((p) => `
+            <div class="card" data-id="${esc(p.id)}">
+              <div class="thumb"><img src="${esc(p.image)}" alt=""></div>
+              <div class="body">
+                <div class="title">${esc(p.name)}</div>
+                <div class="muted" style="font-size:12px">Janr: ${esc(p.genre)}</div>
+                <div class="muted" style="font-size:12px">To'lov: ${esc(p.paymentType)}</div>
+                <div class="price">${esc(fmtMoney(p.price))}</div>
+                <div class="row mt-2">
+                  <button class="btn" data-act="toggle">${p.public ? 'Off' : 'On'}</button>
+                  <button class="btn danger" data-act="del">O'chirish</button>
+                </div>
+              </div>
+            </div>
+          `).join('')}</div>`;
+
+          worksEl.querySelectorAll('.card').forEach(card => {
+            const id = card.getAttribute('data-id');
+            card.querySelector('[data-act="del"]').onclick = async () => {
+              if (!confirm("O'chirishni tasdiqlaysizmi?")) return;
+              await api('/api/seller/products/' + id, { method: 'DELETE' }); 
+              renderWorks();
+            };
+            card.querySelector('[data-act="toggle"]').onclick = async () => {
+              await api('/api/seller/products/' + id + '/public', { 
+                method: 'PATCH', 
+                body: { isPublic: card.querySelector('[data-act="toggle"]').textContent === 'On' } 
+              });
+              renderWorks();
+            };
+          });
+        } catch (e) { 
+          worksEl.innerHTML = `<p class="error-text">Xatolik</p>`; 
+        }
+      }
+
+      createBtn.onclick = async () => {
+        msgEl.textContent = '';
+        if (!nameEl.value.trim() || !priceEl.value || !pendingFile) {
+          return msgEl.textContent = "Barcha maydonlarni to'ldiring!";
+        }
+        createBtn.disabled = true;
+        try {
+          await api('/api/seller/products', { 
+            method: 'POST', 
+            body: {
+              name: nameEl.value, 
+              price: priceEl.value, 
+              genre: genreEl.value, 
+              paymentType: paymentEl.value,
+              imageBase64: pendingFile.base64, 
+              imageType: pendingFile.type, 
+              isPublic: pubEl.checked
+            }
+          });
+          nameEl.value = ''; 
+          priceEl.value = ''; 
+          fileEl.value = ''; 
+          pendingFile = null;
+          preview.classList.add('hidden');
+          toast('Asar yaratildi!', 'ok'); 
+          renderWorks();
+        } catch (e) { 
+          msgEl.textContent = 'Xatolik yuz berdi'; 
+        } finally { 
+          createBtn.disabled = false; 
+        }
+      };
+
+      renderWorks();
+    };
+  </script>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Savat — SARDOR ART</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body data-page="cart">
+  <div id="site-header"></div>
+  <main class="container">
+    <h1 data-i18n="cart_title">Savat</h1>
+    <div id="cart-area"></div>
+  </main>
+  <div id="site-footer"></div>
+
+  <script>
+    window.initCart = function () {
+      const area = document.getElementById('cart-area');
+      function render() {
+        const cart = getCart();
+        if (!cart.length) return area.innerHTML = `<p class="muted">Savat bo'sh.</p><a href="/" class="btn mt-2">Asarlarga o'tish</a>`;
+        
+        area.innerHTML = `
+          <div id="cart-list">${cart.map((it) => `
+            <div class="cart-item" data-id="${esc(it.id)}">
+              <img src="${esc(it.image)}" alt="">
+              <div><div class="title">${esc(it.name)}</div><div class="muted">${esc(fmtMoney(it.price))}</div></div>
+              <div class="qty">
+                <button data-act="dec">−</button><span>${esc(it.qty)}</span><button data-act="inc">+</button>
+              </div>
+              <button class="btn danger" data-act="rm">O'chirish</button>
+            </div>
+          `).join('')}</div>
+          <div style="display:flex; justify-content:flex-end; gap:12px; font-size:18px; font-weight:700; margin:18px 0;">
+            <span>Jami:</span><span class="price">${esc(fmtMoney(cart.reduce((s,x)=>s+x.price*x.qty, 0)))}</span>
+          </div>
+          <div style="display:flex; justify-content:flex-end;">
+            <button id="go-checkout" class="btn primary">Buyurtma berish</button>
+          </div>`;
+
+        area.querySelectorAll('.cart-item').forEach(row => {
+          const id = row.getAttribute('data-id');
+          const item = getCart().find(x => String(x.id) === String(id));
+          if (!item) return;
+          row.querySelector('[data-act="inc"]').onclick = () => { setQty(id, item.qty + 1); render(); };
+          row.querySelector('[data-act="dec"]').onclick = () => { if (item.qty > 1) { setQty(id, item.qty - 1); render(); } };
+          row.querySelector('[data-act="rm"]').onclick = () => { removeFromCart(id); render(); };
+        });
+
+        document.getElementById('go-checkout').onclick = () => {
+          if (!getAuth()) return window.location.href = '/login';
+          window.location.href = '/checkout';
+        };
+      }
+      render();
+    };
+  </script>
+  <script src="/app.js"></script>
+</body>
+</html>

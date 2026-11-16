@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Profil — SARDOR ART</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body data-page="profile">
+  <div id="site-header"></div>
+  <main class="container">
+    <h1 data-i18n="profile_title">Profil</h1>
+    <div id="profile-area"></div>
+  </main>
+  <div id="site-footer"></div>
+
+  <script>
+    window.initProfile = function () {
+      const area = document.getElementById('profile-area');
+      const user = getAuth();
+      if (!user) return area.innerHTML = `<p class="muted">Tizimga kiring.</p><a href="/login" class="btn primary mt-2">Kirish</a>`;
+      
+      area.innerHTML = `
+        <div style="background:var(--card); padding:20px; border-radius:12px; border:1px solid var(--border);">
+          <h3>${esc(user.phone)}</h3>
+          <p>Rol: <b>${user.role === 'seller' ? 'Savdogar' : 'Mijoz'}</b></p>
+          <div class="row mt-2">
+            <button id="role-customer" class="btn ${user.role === 'customer' ? 'primary' : ''}">Mijoz</button>
+            <button id="role-seller" class="btn ${user.role === 'seller' ? 'primary' : ''}">Savdogar</button>
+          </div>
+        </div>
+        <div class="mt-2" style="text-align:center;">
+          <a href="/" class="btn">Asarlarga o'tish</a>
+          ${user.role === 'seller' ?` <a href="/seller" class="btn">Savdogar paneli</a><a href="/sold" class="btn">Sotilganlar</a>` : ''}
+        </div>`
+      ;
+      document.getElementById('role-customer').onclick = async () => { await api('/api/profile/role', { method: 'POST', body: { role: 'customer' } }); location.reload(); };
+      document.getElementById('role-seller').onclick = async () => { await api('/api/profile/role', { method: 'POST', body: { role: 'seller' } }); location.reload(); };
+    };
+  </script>
+  <script src="/app.js"></script>
+</body>
+</html>

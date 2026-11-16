@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mahsulot — SARDOR ART</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body data-page="product">
+  <div id="site-header"></div>
+  <main class="container">
+    <a href="/" class="muted" data-i18n="back">Orqaga</a>
+    <div id="product-area" class="mt-2"></div>
+  </main>
+  <div id="site-footer"></div>
+
+  <script>
+    window.initProduct = async function () {
+      const area = document.getElementById('product-area');
+      const id = new URLSearchParams(location.search).get('id');
+      if (!id) return area.innerHTML = <p class="muted">ID topilmadi.</p>;
+      
+      try {
+        const j = await api('/api/products/' + encodeURIComponent(id));
+        const p = j.product;
+        area.innerHTML = `
+          <div class="product-layout">
+            <div class="product-media"><img src="${esc(p.image)}" alt="${esc(p.name)}"></div>
+            <div class="product-info">
+              <h1>${esc(p.name)}</h1>
+              <div class="muted">${esc(p.sellerName || '')}</div>
+              <div class="mt-2" style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; font-size:14px;">
+                <div><b>Janr:</b> ${esc(p.genre)}</div>
+                <div><b>To'lov:</b> ${esc(p.paymentType)}</div>
+              </div>
+              <div class="price mt-2">${esc(fmtMoney(p.price))}</div>
+              <div class="row mt-2">
+                <button id="buy" class="btn primary" data-i18n="add_to_cart">Savatga qo'shish</button>
+              </div>
+            </div>
+          </div>`
+        ;
+        document.getElementById('buy').addEventListener('click', () => {
+          addToCart({ id: p.id, name: p.name, price: p.price, image: p.image, qty: 1 });
+          toast(t('added'), 'ok');
+        });
+        applyTranslations();
+      } catch (e) {
+        area.innerHTML = `<p class="error-text">Asar topilmadi yoki o'chirilgan.</p><a href="/" class="btn mt-2">Bosh sahifa</a>`;
+      }
+    };
+  </script>
+  <script src="/app.js"></script>
+</body>
+</html>

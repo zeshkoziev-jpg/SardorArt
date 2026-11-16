@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kirish — SARDOR ART</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body data-page="login">
+  <div id="site-header"></div>
+  <main class="container">
+    <h1 data-i18n="login_title">Kirish</h1>
+    <div class="form" style="text-align: center; margin-top: 40px;">
+      <p class="muted">Tizimga kirish uchun Telegram botimizdan foydalaning.</p>
+      <button id="tg-login" class="btn primary" style="font-size: 16px; padding: 15px 30px;">Telegram orqali kirish</button>
+      <div id="msg" class="muted mt-2" style="font-weight: bold;"></div>
+      <div class="mt-2"><a href="/" class="btn ghost">Asarlarga o'tish</a></div>
+    </div>
+  </main>
+  <div id="site-footer"></div>
+
+  <script>
+    window.initLogin = function () {
+      const btn = document.getElementById('tg-login');
+      const msg = document.getElementById('msg');
+
+      btn.addEventListener('click', async () => {
+        btn.disabled = true; msg.textContent = 'Telegramga yo\'naltirilmoqda...';
+        try {
+          const res = await api('/api/auth/telegram/init', { method: 'POST', body: {} });
+          window.open(res.url, '_blank');
+          msg.textContent = 'Botga o\'tib, telefon raqamingizni va kodni yuboring. Kutmoqdamiz...';
+
+          const interval = setInterval(async () => {
+            try {
+              const check = await api('/api/auth/telegram/check?token=' + res.token);
+              if (check.ok) {
+                clearInterval(interval); msg.textContent = 'Muvaffaqiyatli kirdingiz! O\'tilmoqda...';
+                setTimeout(() => window.location.href = '/profile', 1000);
+              }
+            } catch (e) {}
+          }, 2000);
+        } catch (e) {
+          msg.textContent = 'Xatolik yuz berdi. Qaytadan urinib ko\'ring.'; btn.disabled = false;
+        }
+      });
+    };
+  </script>
+  <script src="/app.js"></script>
+</body>
+</html>
