@@ -12,7 +12,7 @@
     uz: {
       profile: 'Profil', cart: 'Savat', logout: 'Chiqish', seller: 'Savdogar', sold: 'Sotilganlar',
       home: 'Bosh sahifa', catalog_title: 'Asarlar', catalog_empty: 'Hech narsa topilmadi.',
-      add_to_cart: 'Savatga qo\'shish', added: 'Savatga qo\'shildi', price: 'Narx', back: 'Orqaga',
+      buy: 'Sotib olish', add_to_cart: 'Savatga qo\'shish', added: 'Savatga qo\'shildi', price: 'Narx', back: 'Orqaga',
       cart_title: 'Savat', cart_empty: 'Savat bo\'sh.', remove: 'O\'chirish', total: 'Jami', checkout: 'Buyurtma berish',
       checkout_title: 'Buyurtmani rasmiylashtirish', name: 'Ism', phone: 'Telefon', address: 'Manzil',
       get_location: 'Joylashuvni aniqlash', location_ok: 'Joylashuv olindi', location_err: 'Joylashuvni olib bo\'lmadi',
@@ -28,7 +28,7 @@
     ru: {
       profile: 'Профиль', cart: 'Корзина', logout: 'Выйти', seller: 'Продавец', sold: 'Продано',
       home: 'Главная', catalog_title: 'Работы', catalog_empty: 'Ничего не найдено.',
-      add_to_cart: 'В корзину', added: 'Добавлено в корзину', price: 'Цена', back: 'Назад',
+      buy: 'Купить', add_to_cart: 'В корзину', added: 'Добавлено в корзину', price: 'Цена', back: 'Назад',
       cart_title: 'Корзина', cart_empty: 'Корзина пуста.', remove: 'Удалить', total: 'Итого', checkout: 'Оформить',
       checkout_title: 'Оформление заказа', name: 'Имя', phone: 'Телефон', address: 'Адрес',
       get_location: 'Определить местоположение', location_ok: 'Местоположение получено', location_err: 'Не удалось получить местоположение',
@@ -44,7 +44,7 @@
     en: {
       profile: 'Profile', cart: 'Cart', logout: 'Logout', seller: 'Seller', sold: 'Sold',
       home: 'Home', catalog_title: 'Works', catalog_empty: 'Nothing found.',
-      add_to_cart: 'Add to cart', added: 'Added to cart', price: 'Price', back: 'Back',
+      buy: 'Buy', add_to_cart: 'Add to cart', added: 'Added to cart', price: 'Price', back: 'Back',
       cart_title: 'Cart', cart_empty: 'Cart is empty.', remove: 'Remove', total: 'Total', checkout: 'Checkout',
       checkout_title: 'Checkout', name: 'Name', phone: 'Phone', address: 'Address',
       get_location: 'Detect location', location_ok: 'Location captured', location_err: 'Could not get location',
@@ -72,11 +72,15 @@
   window.applyTranslations = applyTranslations;
 
   async function api(url, opts = {}) {
-    const opt = `{ method: opts.method  'GET', credentials: 'same-origin', headers: Object.assign({ 'Content-Type': 'application/json' }, opts.headers  {}) }`;
+    const opt = `{ method: opts.method , 'GET'  credentials: 'same-origin', headers: Object.assign({ 'Content-Type': 'application/json' }, opts.headers  {}) }`;
     if (opts.body !== undefined) opt.body = JSON.stringify(opts.body);
     const r = await fetch(url, opt);
-    let j = null; try { j = await r.json(); } catch {}
-    if (!r.ok) { const err = new Error((j && j.error) || 'HTTP_' + r.status); err.status = r.status; err.data = j; throw err; }
+    let j = null;
+    try { j = await r.json(); } catch {}
+    if (!r.ok) {
+      const err = new Error((j && j.error) || 'HTTP_' + r.status);
+      err.status = r.status; err.data = j; throw err;
+    }
     return j;
   }
   window.api = api;
@@ -84,8 +88,10 @@
   function toast(msg, type) {
     let el = document.querySelector('.toast');
     if (!el) { el = document.createElement('div'); el.className = 'toast'; document.body.appendChild(el); }
-    el.textContent = msg; el.classList.remove('error', 'ok'); if (type) el.classList.add(type);
-    el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2400);
+    el.textContent = msg;
+    el.classList.remove('error', 'ok'); if (type) el.classList.add(type);
+    el.classList.add('show');
+    clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2400);
   }
   window.toast = toast;
 
@@ -94,15 +100,17 @@
     try { const j = await api('/api/auth/me'); AUTH.user = j.user || null; } catch { AUTH.user = null; }
     return AUTH.user;
   }
-  window.getAuth = () => AUTH.user; window.refreshAuth = refreshAuth;
+  window.getAuth = () => AUTH.user;
+  window.refreshAuth = refreshAuth;
 
   const CART_KEY = 'sardor_cart';
   function getCart() { try { const arr = JSON.parse(localStorage.getItem(CART_KEY) || '[]'); return Array.isArray(arr) ? arr.filter(x => x && x.id) : []; } catch { return []; } }
   function setCart(arr) { localStorage.setItem(CART_KEY, JSON.stringify(arr)); updateCartBadge(); }
   function addToCart(item) {
-    const cart = getCart(); const found = cart.find((x) => x.id === item.id);
+    const cart = getCart();
+    const found = cart.find((x) => x.id === item.id);
     if (found) found.qty = Math.min(99, Number(found.qty) + Number(item.qty || 1));
-    else cart.push(`{ id: String(item.id), name: String(item.name  ''), price: Number(item.price  0), image: String(item.image  ''), qty: Math.max(1, Number(item.qty)  1) }`);
+    else cart.push(`{ id: String(item.id), name: String(item.name , ''), price: Number(item.price  0), image: String(item.image  ''), qty: Math.max(1, Number(item.qty)  1) }`);
     setCart(cart);
   }
   function cartCount() { return getCart().reduce((s, x) => s + Number(x.qty || 0), 0); }
@@ -119,7 +127,8 @@
   async function buildHeader() {
     const host = document.getElementById('site-header');
     if (!host) return;
-    const user = AUTH.user; let right;
+    const user = AUTH.user;
+    let right;
     if (user) {
       const sellerLink = user.role === 'seller' ? `<a href="/seller" data-i18n="seller">${esc(t('seller'))}</a><a href="/sold" data-i18n="sold">${esc(t('sold'))}</a>` : '';
       right = `<a href="/" data-i18n="home">${esc(t('home'))}</a>${sellerLink}<a href="/profile" data-i18n="profile">${esc(t('profile'))}</a><a href="/cart" id="cart-link" data-i18n="cart">${esc(t('cart'))}<span class="badge hidden"></span></a><button id="logout-btn" data-i18n="logout">${esc(t('logout'))}</button>`;
